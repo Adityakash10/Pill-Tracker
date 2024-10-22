@@ -33,6 +33,8 @@ class _IntroPageState extends State<IntroPage> {
             SizedBox(height: 25),
             Padding(
               padding: const EdgeInsets.all(50),
+              //child: Image.network(
+              // 'https://media.istockphoto.com/id/1328501964/vector/heap-of-pills-and-capsules-isolated-on-a-white-background-vector-illustration-of-medical.jpg?s=612x612&w=0&k=20&c=MQ3bzbM6xca-fFUR54CQ2oz7tRA9UFJxICvHdxzGuhQ='),
               // add image here
             ),
             SizedBox(height: 25),
@@ -53,7 +55,7 @@ class _IntroPageState extends State<IntroPage> {
             MyButton(
               text: "Get Started",
               onTap: () {
-                Navigator.pushNamed(context, '/menupage');
+                Navigator.pushNamed(context, '/loginpage');
               },
             )
           ],
