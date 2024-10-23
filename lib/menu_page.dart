@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -93,10 +94,10 @@ class _MenuPageState extends State<MenuPage> {
                                 });
                               },
                               style: ElevatedButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  backgroundColor: Colors.amber),
                               child: Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
@@ -130,7 +131,7 @@ class _MenuPageState extends State<MenuPage> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(selectedTime.format(context)),
-                                  const Icon(Icons.lock_clock),
+                                  const Icon(Icons.schedule),
                                 ],
                               ),
                             ),
@@ -139,17 +140,28 @@ class _MenuPageState extends State<MenuPage> {
                             ElevatedButton(
                               onPressed: () async {
                                 // Do something like saving the data
-                                var reminder = PillReminderModel(
-                                    medicineName:
-                                        medicineNameController.text.trim(),
-                                    quantity: quantityController.text.trim(),
-                                    addeddate: Timestamp.fromDate(selectedDate),
-                                    time: selectedTime.format(context));
-                                print(reminder.toMap());
-                                await FirebaseFirestore.instance
-                                    .collection("pillReminder")
-                                    .add(reminder.toMap());
-                                Navigator.pop(context);
+                                try {
+                                  var reminder = PillReminderModel(
+                                      medicineName:
+                                          medicineNameController.text.trim(),
+                                      quantity: quantityController.text.trim(),
+                                      uid: FirebaseAuth
+                                          .instance.currentUser!.uid
+                                          .toString(),
+                                      addeddate:
+                                          Timestamp.fromDate(selectedDate),
+                                      time: selectedTime.format(context));
+
+                                  await FirebaseFirestore.instance
+                                      .collection("pillReminder")
+                                      .add(reminder.toMap());
+
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content:
+                                              Text('Successfully Added!')));
+                                } catch (e) {}
                               },
                               style: ElevatedButton.styleFrom(
                                 shape: RoundedRectangleBorder(
@@ -180,27 +192,83 @@ class _MenuPageState extends State<MenuPage> {
                   GoogleFonts.dmSerifDisplay(fontSize: 32, color: Colors.black),
             ),
           ),
-          Container(
-            padding: EdgeInsets.all(12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Pain killer",
-                        style: GoogleFonts.nunito(
-                            fontSize: 20, color: Colors.black)),
-                    Text("1 tablet",
-                        style: GoogleFonts.nunito(
-                            fontSize: 20, color: Colors.black))
-                  ],
-                ),
-                Text("8 AM",
-                    style:
-                        GoogleFonts.nunito(fontSize: 20, color: Colors.black))
-              ],
-            ),
+          Expanded(
+            child: StreamBuilder(
+                stream: FirebaseFirestore.instance
+                    .collection("pillReminder")
+                    .where('uid',
+                        isEqualTo:
+                            FirebaseAuth.instance.currentUser!.uid.toString())
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    var data = snapshot.data!.docs
+                        .map((e) => PillReminderModel.fromMap(e.data()))
+                        .toList();
+                    return ListView.builder(
+                        itemCount: data.length,
+                        itemBuilder: (context, index) => Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              child: Card(
+                                //        padding: EdgeInsets.all(12),
+                                color: Colors.blue,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                              data[index]
+                                                  .medicineName
+                                                  .toString(),
+                                              style: GoogleFonts.nunito(
+                                                  fontSize: 20,
+                                                  color: Colors.black)),
+                                          Text(data[index].quantity.toString(),
+                                              style: GoogleFonts.nunito(
+                                                  fontSize: 20,
+                                                  color: Colors.black))
+                                        ],
+                                      ),
+                                      Text(data[index].time.toString(),
+                                          style: GoogleFonts.nunito(
+                                              fontSize: 20,
+                                              color: Colors.black))
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ));
+                  }
+                  return Container(
+                    padding: EdgeInsets.all(12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("Pain killer",
+                                style: GoogleFonts.nunito(
+                                    fontSize: 20, color: Colors.black)),
+                            Text("1 tablet",
+                                style: GoogleFonts.nunito(
+                                    fontSize: 20, color: Colors.black))
+                          ],
+                        ),
+                        Text("8 AM",
+                            style: GoogleFonts.nunito(
+                                fontSize: 20, color: Colors.black))
+                      ],
+                    ),
+                  );
+                }),
           )
         ],
       ),
